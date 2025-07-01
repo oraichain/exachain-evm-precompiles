@@ -1,0 +1,7 @@
+.exad/
+.env
+artifacts/
+cache/
+node_modules/
+results/
+typechain-types/
