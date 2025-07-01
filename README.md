@@ -1,254 +1,294 @@
-# Oracle Hub EVM
+# ExaChain EVM Precompiles
 
-A decentralized oracle hub with multisig governance for price aggregation, ported from CosmWasm to Solidity for EVM chains. **Now with Chainlink AggregatorV3Interface compatibility!**
+A collection of EVM-compatible smart contract interfaces for interacting with ExaChain's native IBC (Inter-Blockchain Communication) functionality, specifically ICS-20 token transfers.
 
-## Features
+## Overview
 
-- **Multisig Governance**: Proposal creation and voting system with weighted members
-- **Price Aggregation**: Median calculation from multiple oracle submissions
-- **Hook System**: Extensible hook contracts for price processing
-- **Chainlink Compatibility**: OracleHook implements AggregatorV3Interface for seamless DeFi integration
-- **Pause Functionality**: Emergency pause/unpause capabilities
-- **Comprehensive Testing**: Full test suite with Chainlink interface testing
+This repository provides Solidity interfaces and contracts that enable EVM-based smart contracts to interact with ExaChain's native IBC capabilities. The primary focus is on ICS-20 fungible token transfers, allowing seamless cross-chain token movements through IBC protocols.
 
-## Chainlink AggregatorV3Interface Integration
+### Key Features
 
-Your OracleHook now implements Chainlink's `AggregatorV3Interface`, making it a **drop-in replacement** for Chainlink price feeds in DeFi protocols.
-
-### How It Works
-
-1. **OracleHub** receives price submissions from multiple oracles
-2. **OracleHub** calculates median prices and executes proposals
-3. **OracleHook** receives price updates and stores them as Chainlink-compatible rounds
-4. **DeFi protocols** can read prices using the standard Chainlink interface
-
-### Usage Example
-
-```solidity
-// DeFi protocol reading from OracleHook (same as Chainlink)
-AggregatorV3Interface priceFeed = AggregatorV3Interface(oracleHookAddress);
-(
-    uint80 roundId,
-    int256 answer,
-    uint256 startedAt,
-    uint256 updatedAt,
-    uint80 answeredInRound
-) = priceFeed.latestRoundData();
-
-// Convert to price (assuming 18 decimals)
-uint256 price = uint256(answer);
-```
-
-### Available Functions
-
-- `latestRoundData()` - Get the latest price
-- `getRoundData(uint80 roundId)` - Get historical price data
-- `decimals()` - Get number of decimals (typically 18)
-- `description()` - Get feed description
-- `version()` - Get interface version
+- **IBC Token Transfers**: Execute cross-chain token transfers using IBC ICS-20 protocol
+- **Authorization Management**: Grant and revoke transfer permissions for other addresses
+- **Denomination Tracing**: Query and manage IBC token denomination traces
+- **EVM Compatibility**: Full compatibility with Ethereum tooling and development workflows
 
 ## Architecture
 
-```
-┌─────────────┐    ┌──────────────┐    ┌─────────────┐
-│   Oracles   │───▶│  OracleHub   │───▶│ OracleHook  │
-│ (Members)   │    │ (Governance) │    │(Aggregator) │
-└─────────────┘    └──────────────┘    └─────────────┘
-                           │                    │
-                           ▼                    ▼
-                    ┌──────────────┐    ┌─────────────┐
-                    │   Proposals  │    │ DeFi Protocols│
-                    │   & Voting   │    │ (Chainlink) │
-                    └──────────────┘    └─────────────┘
-```
+### Core Contracts
+
+#### `ICS20I.sol`
+
+The main interface for IBC ICS-20 token transfers. Provides functionality for:
+
+- Cross-chain token transfers via IBC
+- Querying denomination traces and hashes
+- Managing transfer timeouts and memos
+
+**Precompile Address**: `0x0000000000000000000000000000000000000802`
+
+#### `IICS20Authorization.sol`
+
+Authorization interface for managing transfer permissions:
+
+- Approve/revoke transfer authorizations
+- Increase/decrease allowances for specific channels and denominations
+- Query existing allowances
+
+#### `Types.sol`
+
+Common data structures used throughout the contracts:
+
+- `ICS20Allocation`: Represents transfer allocations with spend limits
+- `Coin` and `DecCoin`: Token representation structures
+- `Height`: IBC block height structure for timeouts
+- `PageRequest`/`PageResponse`: Pagination structures
 
 ## Quick Start
 
-### 1. Install Dependencies
+### Prerequisites
+
+- Node.js (v16 or later)
+- Yarn package manager
+- ExaChain node access
+
+### Installation
+
+1. Clone the repository:
 
 ```bash
-npm install
+git clone <repository-url>
+cd exachain-evm-precompiles
 ```
 
-### 2. Compile Contracts
+2. Install dependencies:
 
 ```bash
-npm run compile
+yarn install
 ```
 
-### 3. Run Tests
+3. Set up environment variables:
 
 ```bash
-npm test
+cp .env.example .env
+# Edit .env with your private keys and network configurations
 ```
-
-### 4. Deploy Contracts
-
-```bash
-# Deploy OracleHub with Chainlink integration
-npm run deploy:chainlink
-
-# Or deploy individual components
-npm run deploy
-```
-
-## Deployment
-
-### Basic Deployment
-
-```bash
-npx hardhat run scripts/deployment/deploy.ts --network <network>
-```
-
-### Chainlink-Compatible Deployment
-
-```bash
-npx hardhat run scripts/deployment/deploy-aggregator-wrappers.ts --network <network>
-```
-
-This deploys:
-
-- **OracleHub**: Main governance contract
-- **OracleHook**: Chainlink-compatible price feed (one per price key)
 
 ### Configuration
 
-Update the deployment script with your parameters:
+Configure your environment variables in `.env`:
 
-```typescript
-const priceKeys = [
-  { key: "BTC/USD", decimals: 18, description: "BTC/USD price feed" },
-  { key: "ETH/USD", decimals: 18, description: "ETH/USD price feed" },
-  // Add more price keys as needed
-];
+```env
+# Private keys for deployment
+PRIVATE_KEY=your_private_key_here
+PRIVATE_KEY2=additional_key_if_needed
+
+# API Keys (optional, for verification)
+ETHERSCAN_API_KEY=your_etherscan_api_key_here
+COINMARKETCAP_API_KEY=your_coinmarketcap_api_key_here
+
+# Gas reporting
+REPORT_GAS=true
 ```
 
-## Contract Overview
+### Network Configuration
 
-### OracleHub.sol
+The project is configured for ExaChain network:
 
-- **Purpose**: Main governance contract for price aggregation
-- **Features**: Proposal creation, voting, median calculation
-- **Governance**: Multisig with weighted members
+- **Chain ID**: 20250626
+- **RPC URL**: http://128.199.120.187:8545
+- **Local Development**: http://127.0.0.1:8545
 
-### OracleHook.sol
+## Usage
 
-- **Purpose**: Chainlink-compatible price feed
-- **Interface**: Implements `AggregatorV3Interface`
-- **Features**: Price storage, historical data, round management
-
-### ChainlinkPriceFeed.sol
-
-- **Purpose**: Chainlink price feed adapter (optional)
-- **Features**: Reads from Chainlink aggregators
-- **Use Case**: Hybrid oracle system
-
-## Testing
-
-### Run All Tests
+### Compiling Contracts
 
 ```bash
-npm test
+yarn compile
 ```
 
-### Run Specific Test Suites
+### Running Tests
 
 ```bash
-# Unit tests
-npx hardhat test test/unit/
-
-# Integration tests
-npx hardhat test test/integration/
-
-# Chainlink interface tests
-npx hardhat test test/integration/OracleHookAggregatorV3.test.ts
+yarn test
 ```
 
-## Integration with DeFi Protocols
+### Deploying Contracts
 
-### 1. Direct Integration
+Deploy to local network:
 
-Use OracleHook addresses as Chainlink price feeds:
+```bash
+yarn deploy:local
+```
+
+Deploy to ExaChain testnet:
+
+```bash
+yarn deploy:testnet
+```
+
+Deploy to ExaChain mainnet:
+
+```bash
+yarn deploy:mainnet
+```
+
+### Contract Interaction
+
+The contracts are precompiled at specific addresses on ExaChain. You can interact with them directly:
 
 ```solidity
-// In your DeFi contract
-AggregatorV3Interface public priceFeed;
+import "./contracts/ICS20I.sol";
 
-constructor(address _priceFeed) {
-    priceFeed = AggregatorV3Interface(_priceFeed);
-}
+contract MyContract {
+    ICS20I constant ics20 = ICS20I(ICS20_PRECOMPILE_ADDRESS);
 
-function getPrice() public view returns (uint256) {
-    (, int256 answer, , , ) = priceFeed.latestRoundData();
-    return uint256(answer);
+    function transferTokens(
+        string memory sourcePort,
+        string memory sourceChannel,
+        string memory denom,
+        uint256 amount,
+        string memory receiver,
+        string memory memo
+    ) external {
+        Height memory timeoutHeight = Height(0, 0); // No timeout
+
+        ics20.transfer(
+            sourcePort,
+            sourceChannel,
+            denom,
+            amount,
+            msg.sender,
+            receiver,
+            timeoutHeight,
+            0, // No timestamp timeout
+            memo
+        );
+    }
 }
 ```
 
-### 2. Price Feed Registry
-
-Register OracleHook addresses in a price feed registry:
+### Authorization Example
 
 ```solidity
-mapping(bytes32 => address) public priceFeeds;
+import "./contracts/IICS20Authorization.sol";
 
-function setPriceFeed(bytes32 asset, address aggregator) external onlyOwner {
-    priceFeeds[asset] = aggregator;
+contract AuthorizationExample {
+    IICS20Authorization constant auth = IICS20Authorization(ICS20_PRECOMPILE_ADDRESS);
+
+    function grantTransferPermission(
+        address grantee,
+        string memory sourcePort,
+        string memory sourceChannel,
+        string memory denom,
+        uint256 amount
+    ) external {
+        Coin[] memory spendLimit = new Coin[](1);
+        spendLimit[0] = Coin(denom, amount);
+
+        string[] memory allowList = new string[](0);
+
+        ICS20Allocation[] memory allocations = new ICS20Allocation[](1);
+        allocations[0] = ICS20Allocation(
+            sourcePort,
+            sourceChannel,
+            spendLimit,
+            allowList
+        );
+
+        auth.approve(grantee, allocations);
+    }
 }
 ```
 
-### 3. Multi-Asset Support
+## Development
 
-Deploy one OracleHook per price key for multi-asset support.
+### Project Structure
 
-## Security Features
+```
+├── contracts/              # Smart contract interfaces
+│   ├── ICS20I.sol          # Main IBC transfer interface
+│   ├── IICS20Authorization.sol # Authorization interface
+│   └── Types.sol           # Common data structures
+├── scripts/                # Deployment and interaction scripts
+│   └── interaction/        # Contract interaction examples
+├── config/                 # Configuration files
+├── hardhat.config.ts       # Hardhat configuration
+└── package.json           # Project dependencies
+```
 
-- **Pause Mechanism**: Emergency pause/unpause functionality
-- **Access Control**: Owner-only admin functions
-- **Reentrancy Protection**: All external calls protected
-- **Input Validation**: Comprehensive parameter validation
-- **Deposit System**: Proposal deposit requirements
+### Available Scripts
 
-## Gas Optimization
+- `yarn compile` - Compile contracts
+- `yarn test` - Run tests
+- `yarn test:coverage` - Run tests with coverage
+- `yarn deploy` - Deploy contracts
+- `yarn verify` - Verify deployed contracts
+- `yarn clean` - Clean artifacts
+- `yarn node` - Start local Hardhat node
+- `yarn console` - Open Hardhat console
 
-- **Efficient Storage**: Optimized data structures
-- **Batch Operations**: Support for multiple price updates
-- **Minimal External Calls**: Reduced gas consumption
+### Gas Optimization
 
-## Monitoring
+The contracts are configured with:
 
-### Events to Monitor
+- Solidity optimizer enabled (200 runs)
+- Via IR compilation for better optimization
+- Gas reporting available via `REPORT_GAS=true`
 
-- `ProposalCreated`: New price proposals
-- `VoteCast`: Member votes
-- `ProposalExecuted`: Successful proposals
-- `PriceUpdated`: New price data
-- `RoundDataUpdated`: Chainlink round updates
+## IBC Integration
 
-### Key Metrics
+### Understanding IBC Transfers
 
-- Proposal success rate
-- Voting participation
-- Price update frequency
-- Gas usage per operation
+IBC (Inter-Blockchain Communication) enables secure token transfers between different blockchains. Key concepts:
+
+- **Source Port/Channel**: Identifies the IBC connection endpoint
+- **Denomination**: Token identifier, may include IBC path for foreign tokens
+- **Timeout**: Prevents stuck transfers with height or timestamp limits
+- **Memo**: Optional metadata for the transfer
+
+### Denomination Tracing
+
+IBC tokens have special denominations that encode their transfer path:
+
+```
+ibc/[hash] -> Full trace: transfer/channel-0/uatom
+```
+
+Use the provided functions to resolve traces:
+
+```solidity
+string memory hash = ics20.denomHash("transfer/channel-0/uatom");
+DenomTrace memory trace = ics20.denomTrace(hash);
+```
+
+## Security Considerations
+
+- Always validate input parameters before calling precompile functions
+- Set appropriate timeouts to prevent stuck transfers
+- Use authorization mechanisms to control access to transfer functions
+- Consider gas costs for cross-chain operations
+
+## License
+
+This project is licensed under the LGPL-3.0 License.
 
 ## Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Add tests
+4. Add tests for new functionality
 5. Submit a pull request
-
-## License
-
-MIT License - see LICENSE file for details
 
 ## Support
 
-- **Documentation**: [Chainlink Data Feeds API Reference](https://docs.chain.link/data-feeds/api-reference)
-- **Issues**: Create an issue on GitHub
-- **Discussions**: Use GitHub Discussions
+For questions and support:
+
+- Review the contract interfaces and documentation
+- Check ExaChain documentation for IBC-specific details
+- Open an issue for bugs or feature requests
 
 ---
 
-**Note**: This implementation provides Chainlink compatibility while maintaining the governance and security features of the original CosmWasm oracle hub.
+**Note**: This project provides interfaces to precompiled contracts on ExaChain. The actual IBC functionality is implemented at the blockchain protocol level.
