@@ -1,7 +1,7 @@
 import { ethers } from "hardhat";
 
 async function main() {
-  const amt = ethers.parseEther("0.000000000000003000");
+  const amt = ethers.parseEther("0.000000000000003000"); // 3000
   const receiver = "noble143h7yhvp595g905u49w8r34x6fc0x9tsvczknj";
   const precompile = await ethers.getContractAt(
     "ICS20I",
