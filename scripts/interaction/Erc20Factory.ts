@@ -28,7 +28,9 @@ async function main() {
   await tx.wait();
   console.log("tx: ", tx.hash);
 
-  const contractAddress = "0xC27c094fB2B4546bAff35aafE6ca5015df190105";
+  // get erc20 contracts
+  const contractAddress = await precompile.getAddress();
+  console.log("erc20Contracts: ", contractAddress);
 
   // try to get asset
   let asset = await precompile.getAsset(contractAddress);
