@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
 
-import { IERC20Factory__factory } from "../../typechain-types";
+import { IERC20Factory__factory, IERC20__factory } from "../../typechain-types";
 
 async function main() {
   // get signer
@@ -123,6 +123,15 @@ async function main() {
   // try to get asset
   asset = await precompile.getAsset(contractAddress);
   console.log("asset: ", asset);
+
+  // get erc20 interface
+  const erc20 = await IERC20__factory.connect(contractAddress, signer);
+  const transferTx = await erc20.transfer(
+    "0xdBE9194d8A84f79002A351109cA0c8C0acc790B5",
+    ethers.parseEther("100")
+  );
+  await transferTx.wait();
+  console.log("transferTx: ", transferTx.hash);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
